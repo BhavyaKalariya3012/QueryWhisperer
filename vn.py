@@ -3,8 +3,9 @@ from dotenv import load_dotenv, find_dotenv
 import warnings
 from typing import Dict, Optional, Annotated, Tuple, List
 import yaml
+from openai import OpenAI as OpenAIClient
 
-from vanna.ollama import Ollama
+from vanna.openai import OpenAI_Chat
 from vanna.chromadb.chromadb_vector import ChromaDB_VectorStore
 from tqdm import tqdm
 
@@ -19,9 +20,9 @@ else:
     chroma_path = "./chroma"
     yaml_file_path = "./config/training.yaml"
 
-class MyVanna(ChromaDB_VectorStore, Ollama):
+class MyVanna(ChromaDB_VectorStore, OpenAI_Chat):
     """Our main Vanna handler. Inherits from Vanna's ChromaDB_VectorStore
-    and Ollama which implement many of the abstract methods in Vanna's
+    and OpenAI_Chat which implement many of the abstract methods in Vanna's
     Base class. The only thing we need to do is define the constructor where
     we initialize the different objects."""
     
@@ -29,12 +30,24 @@ class MyVanna(ChromaDB_VectorStore, Ollama):
         self, 
         config: Optional[Annotated[
             Dict[str, str], 
-            """The configuration for the vector store or the LLM you want to use. 
-            For e.g. {'model':'llama3'}"""
+            """The configuration for the vector store or the LLM you want to use.
+            For e.g. {'model': 'llama3-8b-8192'}"""
         ]]
     ) -> None:
+        config = config or {}
+        groq_api_key = config.get("api_key") or os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            raise ValueError("GROQ_API_KEY is not set. Add it to your environment before starting the app.")
+
+        client = OpenAIClient(
+            api_key=groq_api_key,
+            base_url=config.get("api_base", os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")),
+        )
+
+        llm_config = {k: v for k, v in config.items() if k != "api_base"}
+
         ChromaDB_VectorStore.__init__(self, config=config)
-        Ollama.__init__(self, config=config)
+        OpenAI_Chat.__init__(self, client=client, config=llm_config)
 
 def load_query_data(yaml_file_path: str) -> List[Tuple[str, str]]:
     """Returns a list of training queries for LLM training.
@@ -58,8 +71,9 @@ def load_query_data(yaml_file_path: str) -> List[Tuple[str, str]]:
     
 print("Instantiating Vanna...")
 vn = MyVanna(config={
-    "model": "llama3",  # Change to your preferred Ollama model (e.g., mistral, codellama, etc.)
+    "model": "llama3-8b-8192",
     "path": chroma_path, #this is the specific key that Vanna looks for (reference: Vanna's ChromaDB_VectorStore source code)
+    "api_key": os.getenv("GROQ_API_KEY"),
 })
 
 print("Connecting Vanna to SQL database...")

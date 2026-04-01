@@ -5,7 +5,7 @@ from typing import List, Dict
 import chainlit as cl
 from vn import vn
 from llama_index.core.base.llms.types import ChatMessage
-from llama_index.llms.ollama import Ollama
+from llama_index.llms.openai import OpenAI
 
 _ = load_dotenv(find_dotenv())
 
@@ -15,10 +15,16 @@ def prepare_chat_history(history: List[Dict[str, str]]) -> List[ChatMessage]:
 @cl.on_chat_start
 async def on_chat_start():
     history = []
-    llm = Ollama(
-        model="llama3",  # Change to your preferred Ollama model
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY is not set. Add it to your environment before starting the app.")
+
+    llm = OpenAI(
+        model="llama3-8b-8192",
         temperature=0,
-        request_timeout=120.0,  # Ollama may need more time
+        api_key=groq_api_key,
+        api_base=os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1"),
+        timeout=120.0,
     )
     cl.user_session.set("llm", llm)
     cl.user_session.set("history", history)
