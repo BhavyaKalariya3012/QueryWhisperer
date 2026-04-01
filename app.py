@@ -5,7 +5,7 @@ from typing import List, Dict
 import chainlit as cl
 from vn import vn
 from llama_index.core.base.llms.types import ChatMessage
-from llama_index.llms.openai import OpenAI
+from llama_index.llms.groq import Groq
 
 _ = load_dotenv(find_dotenv())
 
@@ -19,12 +19,10 @@ async def on_chat_start():
     if not groq_api_key:
         raise ValueError("GROQ_API_KEY is not set. Add it to your environment before starting the app.")
 
-    llm = OpenAI(
+    llm = Groq(
         model="llama3-8b-8192",
         temperature=0,
         api_key=groq_api_key,
-        api_base=os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1"),
-        timeout=120.0,
     )
     cl.user_session.set("llm", llm)
     cl.user_session.set("history", history)

@@ -21,3 +21,35 @@ This spins up your application on port 8000
 ```
 chainlit run app.py
 ```
+
+## Easy Deploy (AWS EC2)
+
+This project can now bootstrap its own SQLite demo database on first run.
+You do not need to copy `database/stocks.db` manually.
+
+### 1) Create environment variables
+Create `.env` in the project root with:
+```
+GROQ_API_KEY=your_key_here
+GROQ_API_BASE=https://api.groq.com/openai/v1
+```
+
+### 2) Install dependencies
+Option A (recommended):
+```
+uv sync
+```
+
+Option B (without uv):
+```
+python -m pip install -r requirements.txt
+```
+
+### 3) Start the app
+From the `glowing-engine` directory:
+```
+python -m chainlit run app.py --host 0.0.0.0 --port 8000
+```
+
+### 4) Open it
+Use `http://<your-ec2-public-ip>:8000` (if your security group allows port 8000).
