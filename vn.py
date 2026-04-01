@@ -91,11 +91,14 @@ def ensure_sqlite_database(db_file_path: str) -> None:
 
     with sqlite3.connect(db_file_path) as connection:
         for table_name, ticker in ticker_map.items():
-            df = yf.download(ticker, period="10y", progress=False, auto_adjust=False)
+            df = yf.download(ticker, period="10y", progress=False, auto_adjust=True)
             if df.empty:
                 raise RuntimeError(f"No market data returned for ticker {ticker}.")
 
             df = df.reset_index()
+            # Flatten MultiIndex columns returned by newer yfinance versions
+            if isinstance(df.columns, __import__('pandas').MultiIndex):
+                df.columns = [col[0] for col in df.columns]
             df.columns = [str(col).lower().replace(" ", "_") for col in df.columns]
             required_columns = ["date", "open", "high", "low", "close", "volume"]
             missing = [col for col in required_columns if col not in df.columns]
